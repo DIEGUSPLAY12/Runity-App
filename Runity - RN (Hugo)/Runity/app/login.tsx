@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   ScrollView,
   StyleSheet,
@@ -6,17 +6,30 @@ import {
   View,
   Pressable,
   TextInput,
+  ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import {push} from "expo-router/build/global-state/routing";
+import { useRouter } from 'expo-router';
+import { useAuth } from '@/hooks/use-auth';
 
 export default function LoginScreen() {
+  const router = useRouter();
+  const { signIn, loading: authLoading, error: authError, session } = useAuth();
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
+
+  // Si ya está autenticado, ir a home
+  useEffect(() => {
+    if (session) {
+      router.replace('/(tabs)');
+    }
+  }, [session, router]);
 
   // Email validation
   const validateEmail = (value: string) => {
@@ -81,15 +94,20 @@ export default function LoginScreen() {
     }
   };
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     const isEmailValid = validateEmail(email);
     const isPasswordValid = validatePassword(password);
 
-    if (isEmailValid && isPasswordValid) {
-      // Handle login logic here
-      console.log('Login successful:', { email, password });
-      // Navigate to the home tabs
-      push('/(tabs)');
+    if (!isEmailValid || !isPasswordValid) {
+      return;
+    }
+
+    try {
+      await signIn(email, password);
+      // Navegación automática via useEffect cuando session cambia
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : 'Error en login';
+      Alert.alert('Error', errorMsg);
     }
   };
 
@@ -114,6 +132,7 @@ export default function LoginScreen() {
 
         {/* Form Container */}
         <View style={styles.formContainer}>
+
           {/* Email Field */}
           <View style={styles.formControl}>
             <Text style={styles.label}>Email</Text>
@@ -175,17 +194,29 @@ export default function LoginScreen() {
             )}
           </View>
 
-          {/* Login Button */}
-          <Pressable
-            onPress={handleLogin}
-            style={[
-              styles.loginButton,
-              (!email || !password) && styles.loginButtonDisabled,
-            ]}
-            disabled={!email || !password}
-          >
-            <Text style={styles.buttonText}>Iniciar Sesión</Text>
-          </Pressable>
+           {/* Login Button */}
+           <Pressable
+             onPress={handleLogin}
+             style={[
+               styles.loginButton,
+               (!email || !password || authLoading) && styles.loginButtonDisabled,
+             ]}
+             disabled={!email || !password || authLoading}
+           >
+             {authLoading ? (
+               <ActivityIndicator size="small" color="#ffffff" />
+             ) : (
+               <Text style={styles.buttonText}>Iniciar Sesión</Text>
+             )}
+           </Pressable>
+
+           {/* Auth Error Message */}
+           {authError && (
+             <View style={styles.errorAlert}>
+               <MaterialIcons name="error" size={16} color="#ef4444" />
+               <Text style={styles.errorAlertText}>{authError}</Text>
+             </View>
+           )}
 
           {/* Forgot Password */}
           <Pressable style={styles.forgotPasswordContainer}>
@@ -194,13 +225,13 @@ export default function LoginScreen() {
             </Text>
           </Pressable>
 
-          {/* Sign Up Link */}
-          <View style={styles.signupContainer}>
-            <Text style={styles.signupText}>¿No tienes cuenta? </Text>
-            <Pressable onPress={() => push('/register')}>
-              <Text style={styles.signupLink}>Regístrate aquí</Text>
-            </Pressable>
-          </View>
+           {/* Sign Up Link */}
+           <View style={styles.signupContainer}>
+             <Text style={styles.signupText}>¿No tienes cuenta? </Text>
+             <Pressable onPress={() => router.push('/register')}>
+               <Text style={styles.signupLink}>Regístrate aquí</Text>
+             </Pressable>
+           </View>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -356,6 +387,21 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#1ac8c1',
     fontWeight: '700',
+  },
+  errorAlert: {
+    flexDirection: 'row',
+    backgroundColor: '#fee2e2',
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 16,
+    alignItems: 'center',
+    gap: 8,
+  },
+  errorAlertText: {
+    flex: 1,
+    fontSize: 13,
+    color: '#991b1b',
+    fontWeight: '500',
   },
 });
 

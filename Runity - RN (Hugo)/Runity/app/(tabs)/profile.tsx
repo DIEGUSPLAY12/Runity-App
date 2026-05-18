@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { useThemeColor } from '@/hooks/use-theme-color';
+import {router} from "expo-router";
 
 export default function ProfileScreen() {
   const fixedAccent = '#004f5d';
@@ -63,7 +64,7 @@ export default function ProfileScreen() {
       <ThemedView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.headerSideButton}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.headerSideButton}>
           <MaterialIcons name="arrow-back" size={24} color={textColor} />
         </TouchableOpacity>
         <ThemedText numberOfLines={1} style={styles.headerTitle}>Profile Settings</ThemedText>

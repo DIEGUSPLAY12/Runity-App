@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     ScrollView,
     StyleSheet,
@@ -6,13 +6,18 @@ import {
     View,
     Pressable,
     TextInput,
+    ActivityIndicator,
+    Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import { useAuth } from '@/hooks/use-auth';
 
 export default function RegisterScreen() {
     const router = useRouter();
+    const { signUp, loading: authLoading, error: authError, session } = useAuth();
+
     const [username, setUsername] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -24,6 +29,13 @@ export default function RegisterScreen() {
     const [emailError, setEmailError] = useState('');
     const [passwordError, setPasswordError] = useState('');
     const [repeatPasswordError, setRepeatPasswordError] = useState('');
+
+    // Si ya está autenticado, ir a home
+    useEffect(() => {
+        if (session) {
+            router.replace('/(tabs)');
+        }
+    }, [session, router]);
 
     // Username validation
     const validateUsername = (value: string) => {
@@ -134,7 +146,7 @@ export default function RegisterScreen() {
         }
     };
 
-    const handleRegister = () => {
+    const handleRegister = async () => {
         const isUsernameValid = validateUsername(username);
         const isEmailValid = validateEmail(email);
         const isPasswordValid = validatePassword(password);
@@ -146,13 +158,14 @@ export default function RegisterScreen() {
             isPasswordValid &&
             isRepeatPasswordValid
         ) {
-            console.log('Registration successful:', {
-                username,
-                email,
-                password,
-            });
-            // Navigate to login after successful registration
-            router.push('/(tabs)');
+            try {
+                // Envía username como tercer parámetro (se envía como display_name al backend)
+                await signUp(email, password, username);
+                // La navegación automática ocurre via useEffect cuando session cambia
+            } catch (err) {
+                const errorMsg = err instanceof Error ? err.message : 'Error en registro';
+                Alert.alert('Error', errorMsg);
+            }
         }
     };
 
@@ -307,13 +320,25 @@ export default function RegisterScreen() {
                         onPress={handleRegister}
                         style={[
                             styles.registerButton,
-                            !isFormValid && styles.registerButtonDisabled,
+                            (!isFormValid || authLoading) && styles.registerButtonDisabled,
                         ]}
-                        disabled={!isFormValid}
+                        disabled={!isFormValid || authLoading}
 
                     >
-                        <Text style={styles.buttonText}>Crear Cuenta</Text>
+                        {authLoading ? (
+                            <ActivityIndicator size="small" color="#ffffff" />
+                        ) : (
+                            <Text style={styles.buttonText}>Crear Cuenta</Text>
+                        )}
                     </Pressable>
+
+                    {/* Auth Error Message */}
+                    {authError && (
+                        <View style={styles.errorAlert}>
+                            <MaterialIcons name="error" size={16} color="#ef4444" />
+                            <Text style={styles.errorAlertText}>{authError}</Text>
+                        </View>
+                    )}
 
                     {/* Login Link */}
                     <View style={styles.loginContainer}>
@@ -473,6 +498,21 @@ const styles = StyleSheet.create({
         fontSize: 16,
         color: '#1ac8c1',
         fontWeight: '700',
+    },
+    errorAlert: {
+        flexDirection: 'row',
+        backgroundColor: '#fee2e2',
+        borderRadius: 10,
+        padding: 12,
+        marginBottom: 16,
+        alignItems: 'center',
+        gap: 8,
+    },
+    errorAlertText: {
+        flex: 1,
+        fontSize: 13,
+        color: '#991b1b',
+        fontWeight: '500',
     },
 });
 
