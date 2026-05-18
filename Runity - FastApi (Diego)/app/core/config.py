@@ -1,0 +1,35 @@
+import os
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker, DeclarativeBase
+from dotenv import load_dotenv
+
+load_dotenv()
+
+# Recuperamos la URL de conexión desde el entorno (Secretos)
+DATABASE_URL = os.getenv("DATABASE_URL")
+
+# Motor de conexión de SQLAlchemy. 
+# Gestiona el Pool de conexiones hacia la base de datos PostgreSQL.
+engine = create_engine(DATABASE_URL)
+
+# Fábrica de sesiones (Session Factory). 
+# Configuramos autocommit y autoflush en False para tener un control manual de las transacciones.
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+# Clase base declarativa para el Mapeo Objeto-Relacional (ORM).
+# Todos los modelos de dominio (Profile, Session) heredarán de esta clase.
+class Base(DeclarativeBase):
+    pass
+
+# Generador de sesiones para Inyección de Dependencias.
+def get_db():
+    """
+    Provee una sesión de base de datos por cada petición y garantiza 
+    su cierre al finalizar, incluso si ocurre una excepción.
+    """
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        # Garantiza la liberación de la conexión al pool
+        db.close()

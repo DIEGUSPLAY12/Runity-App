@@ -1,0 +1,19 @@
+[tool.ruff]
+# Tamaño máximo de línea
+line-length = 88
+# Carpetas a ignorar
+exclude = [
+    ".git",
+    ".venv",
+    "__pycache__",
+    "alembic",
+]
+
+[tool.ruff.lint]
+# Selecciona reglas de pycodestyle (E) y Pyflakes (F)
+select = ["E", "F"]
+ignore = []
+
+[tool.ruff.format]
+# Usa comillas dobles (estándar de Python)
+quote-style = "double"
