@@ -4,12 +4,14 @@ from sqlalchemy.orm import Session as DbSession
 from supabase import create_client, Client
 
 from app.core.db import get_db
+from dotenv import load_dotenv
 from app.models.domain import Profile
 from app.schemas.auth import UserRegister
 from app.schemas.auth import UserLogin
 from app.schemas.auth import TokenRefreshRequest
 
 router = APIRouter()
+load_dotenv()
 
 # Variables de Supabase
 SUPABASE_URL = os.getenv("SUPABASE_URL")
